@@ -3,6 +3,8 @@
 
 #include "CycleTimer.h"
 
+#define SCALE 8
+
 typedef struct {
     float x0, x1;
     float y0, y1;
@@ -28,12 +30,13 @@ extern void mandelbrotSerial(
 //
 // Thread entrypoint.
 void workerThreadStart(WorkerArgs * const args) {
-	for (int startRow = args->threadId; startRow < args->height; startRow += args->numThreads) {
+	WorkerArgs here = *args;
+	for (int startRow = here.threadId * SCALE; startRow < here.height; startRow += here.numThreads * SCALE) {
 	//int rowsPerThread = args->height / args->numThreads;
 	//int numRows = args->threadId == args->numThreads - 1 ? args->height - startRow : rowsPerThread;
 		//printf("Hello world from thread %d\n", args->threadId);
 		//if (rowsPerThread == 0) printf("Rows per thread zero, thread %d\n", args->threadId);
-		mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow, 1, args->maxIterations, args->output);
+		mandelbrotSerial(here.x0, here.y0, here.x1, here.y1, here.width, here.height, startRow, SCALE, here.maxIterations, here.output);
 	}
 }
 
