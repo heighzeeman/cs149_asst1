@@ -241,15 +241,74 @@ void clampedExpSerial(float* values, int* exponents, float* output, int N) {
 }
 
 void clampedExpVector(float* values, int* exponents, float* output, int N) {
-
-  //
-  // CS149 STUDENTS TODO: Implement your vectorized version of
-  // clampedExpSerial() here.
-  //
-  // Your solution should work for any value of
-  // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
-  //
-  
+	__cs149_vec_float x;
+	__cs149_vec_int exp;
+	__cs149_vec_float result;
+	__cs149_vec_int zero = _cs149_vset_int(0);
+	__cs149_vec_int one = _cs149_vset_int(1);
+	__cs149_vec_float clamps = _cs149_vset_float(9.999999f);
+	__cs149_mask maskAll, maskExpIsZero, maskExpIsNotZero, maskToClamp;
+	
+	maskAll = _cs149_init_ones(VECTOR_WIDTH);
+	
+	
+	int i;
+	for (i = 0; i <= N - VECTOR_WIDTH; i += VECTOR_WIDTH) {
+		_cs149_vload_float(x, values + i, maskAll); 
+		_cs149_vload_int(exp, exponents + i, maskAll);
+		
+		_cs149_veq_int(maskExpIsZero, exp, zero, maskAll);	// treat neg exponents as zero. if
+		_cs149_vset_float(result, 1.f, maskExpIsZero);
+		maskExpIsNotZero = _cs149_mask_not(maskExpIsZero);  // else
+		_cs149_vmove_float(result, x, maskExpIsNotZero);
+		_cs149_vsub_int(exp, exp, one, maskExpIsNotZero);
+		
+		_cs149_veq_int(maskExpIsZero, exp, zero, maskAll);
+		maskExpIsNotZero = _cs149_mask_not(maskExpIsZero);
+		
+		while (_cs149_cntbits(maskExpIsNotZero)) {
+			printf("result[0] = %f\n", result.value[0]);
+			_cs149_vmult_float(result, result, x, maskExpIsNotZero);
+			_cs149_vsub_int(exp, exp, one, maskExpIsNotZero);
+			_cs149_veq_int(maskExpIsZero, exp, zero, maskAll);
+			maskExpIsNotZero = _cs149_mask_not(maskExpIsZero);
+		}
+		
+		_cs149_vgt_float(maskToClamp, result, clamps, maskAll);
+		_cs149_vset_float(result, 9.999999f, maskToClamp);
+		_cs149_vstore_float(output + i, result, maskAll);
+	}
+	
+	if (N > i) {
+		__cs149_mask maskRemaining = _cs149_init_ones(N - i);
+		_cs149_vload_float(x, values + i, maskRemaining); 
+		_cs149_vload_int(exp, exponents + i, maskRemaining);
+		
+		_cs149_veq_int(maskExpIsZero, exp, zero, maskRemaining);	// if
+		maskExpIsZero = _cs149_mask_and(maskExpIsZero, maskRemaining);
+		
+		_cs149_vset_float(result, 1.f, maskExpIsZero);
+		maskExpIsNotZero = _cs149_mask_not(maskExpIsZero);
+		maskExpIsNotZero = _cs149_mask_and(maskExpIsNotZero, maskRemaining);  // else
+		
+		_cs149_vmove_float(result, x, maskExpIsNotZero);
+		_cs149_vsub_int(exp, exp, one, maskExpIsNotZero);
+		
+		_cs149_veq_int(maskExpIsZero, exp, zero, maskExpIsNotZero);
+		maskExpIsNotZero = _cs149_mask_not(maskExpIsZero);
+		maskExpIsNotZero = _cs149_mask_and(maskExpIsNotZero, maskRemaining);
+		while (_cs149_cntbits(maskExpIsNotZero)) {
+			_cs149_vmult_float(result, result, x, maskExpIsNotZero);
+			_cs149_vsub_int(exp, exp, one, maskExpIsNotZero);
+			_cs149_veq_int(maskExpIsZero, exp, zero, maskExpIsNotZero);
+			maskExpIsNotZero = _cs149_mask_not(maskExpIsZero);
+			maskExpIsNotZero = _cs149_mask_and(maskExpIsNotZero, maskRemaining);
+		}
+		
+		_cs149_vgt_float(maskToClamp, result, clamps, maskRemaining);
+		_cs149_vset_float(result, 9.999999f, maskToClamp);
+		_cs149_vstore_float(output + i, result, maskRemaining);
+	}
 }
 
 // returns the sum of all elements in values
