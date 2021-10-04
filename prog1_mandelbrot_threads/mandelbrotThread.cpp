@@ -28,12 +28,13 @@ extern void mandelbrotSerial(
 //
 // Thread entrypoint.
 void workerThreadStart(WorkerArgs * const args) {
-	int rowsPerThread = args->height / args->numThreads;
-    int startRow = args->threadId * rowsPerThread;
-	int numRows = args->threadId == args->numThreads - 1 ? args->height - startRow : rowsPerThread;
-    printf("Hello world from thread %d\n", args->threadId);
-	if (rowsPerThread == 0) printf("Rows per thread zero, thread %d\n", args->threadId);
-	else mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow, numRows, args->maxIterations, args->output);
+	for (int startRow = args->threadId; startRow < args->height; startRow += args->numThreads) {
+	//int rowsPerThread = args->height / args->numThreads;
+	//int numRows = args->threadId == args->numThreads - 1 ? args->height - startRow : rowsPerThread;
+		//printf("Hello world from thread %d\n", args->threadId);
+		//if (rowsPerThread == 0) printf("Rows per thread zero, thread %d\n", args->threadId);
+		mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow, 1, args->maxIterations, args->output);
+	}
 }
 
 //
